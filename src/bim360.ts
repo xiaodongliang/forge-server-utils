@@ -316,6 +316,72 @@ interface ILocationNode {
     path?: string[]; // Path information from the root node to the current node. This information is only included if you use the filter[id] parameter
 }
 
+
+//*** RFI interface */
+
+interface IRFI_PermittedActions {
+    updateRfi: {
+        [key: string]: IRFI_UpdateRfi
+    }
+}
+
+interface IRFI_UpdateRfi {
+    permittedStatuses: {
+        [key: string]: IRFI_PermittedStatuses[]
+    }
+}
+
+interface IRFI_PermittedStatuses {
+    status: string;
+    requiredAttributes: {
+        [key: string]: IRFI_RequiredAttributes
+    }
+}
+
+interface IRFI_RequiredAttributes {
+    name: string;
+    values: IRFI_RequiredAttributes_Value[];
+}
+
+interface IRFI_RequiredAttributes_Value {
+    value: string;
+    type: string;
+}
+
+interface IRfi {
+    id: string; // Unique rfi ID. Can be used in other API calls.
+    question: string; // the rfi question
+    status: string;  //The status of the RFI. Note that the possible statuses of the RFI depends on the workflow type assigned to the RFI.
+    assignedTo: string; //The Autodesk ID of the user.
+    managerId: string;//The Autodesk ID of the manager.
+    reviewerId: string;//The Autodesk ID of the reviewer.
+    dueDate: string;//The timestamp of the due date for the RFI, in the following format: YYYY-MM-DDThh:mm:ss.sz.
+    linkedDocument: string; //The document ID associated with the RFI. Identifies whether this RFI is a pushpin RFI or a project-related RFI. 
+    linkedDocumentVersion: string; //The document’s version ID associated with the RFI. Only relevant for pushpin RFIs.
+    attachmentsCount: number;//The number of attachments associated with the RFI.
+    commentsCount: number;//The number of comments associated with the RFI.
+    createdBy: string;//The Autodesk ID of the user who created the RFI. To check the name of the user, call GET projects/users.
+    permittedActions?: {
+        [key: string]: IRFI_PermittedActions;
+    }// The list of actions that are permitted for the user. 
+}
+
+interface IRfiFilter {
+    assignedTo?: string; // Retrieves RFIs in the project that were assigned to the specified user. Use the user’s Autodesk ID
+    linkedDocument?: string; // Retrieves pushpin RFIs that are associated with the specified document. 
+    dueDate?: Date | [Date, Date]; // Retrieves RFIs with the specified due date, in the following format: YYYY-MM-DDThh:mm:ss.sz, or a date range in the following format: YYYY-MM-DDThh:mm:ss.sz...YYYY-MM-DDThh:mm:ss.sz.
+    status?: string; // Retrieves RFIs with the specified status. Possible values: draft, submitted, open, rejected, answered, closed & void. For example, filter[status]=open
+}
+
+interface IProjectUser {
+    id:string;
+    email:string;
+    firstName:string;
+    lastName:string;
+    autodeskId:string;
+
+}
+
 /**
  * Client providing access to Autodesk Forge
  * {@link https://forge.autodesk.com/en/docs/bim360/v1|BIM360 APIs}.
@@ -341,7 +407,7 @@ export class BIM360Client extends ForgeClient {
      * @async
      * @returns {Promise<IHub[]>} List of hubs.
      */
-    async listHubs(xUserId ?: string): Promise<IHub[]> {
+    async listHubs(xUserId?: string): Promise<IHub[]> {
         const headers: { [key: string]: string } = {};
         headers['Content-Type'] = 'application/vnd.api+json';
         if (!!xUserId) {
@@ -363,7 +429,7 @@ export class BIM360Client extends ForgeClient {
      * @param {string} hubId Hub ID.
      * @returns {Promise<IHub>} Hub details or null if there isn't one.
      */
-    async getHubDetails(hubId: string, xUserId ?: string): Promise<IHub> {
+    async getHubDetails(hubId: string, xUserId?: string): Promise<IHub> {
         const headers: { [key: string]: string } = {};
         headers['Content-Type'] = 'application/vnd.api+json';
         if (!!xUserId) {
@@ -384,7 +450,7 @@ export class BIM360Client extends ForgeClient {
      * @param {string} hubId Hub ID.
      * @returns {Promise<IProject[]>} List of projects.
      */
-    async listProjects(hubId: string, xUserId ?: string): Promise<IProject[]> {
+    async listProjects(hubId: string, xUserId?: string): Promise<IProject[]> {
         const headers: { [key: string]: string } = {};
         headers['Content-Type'] = 'application/vnd.api+json';
         if (!!xUserId) {
@@ -407,7 +473,7 @@ export class BIM360Client extends ForgeClient {
      * @param {string} projectId Project ID.
      * @returns {Promise<IProject>} Hub details or null if there isn't one.
      */
-    async getProjectDetails(hubId: string, projectId: string, xUserId ?: string): Promise<IProject> {
+    async getProjectDetails(hubId: string, projectId: string, xUserId?: string): Promise<IProject> {
         const headers: { [key: string]: string } = {};
         headers['Content-Type'] = 'application/vnd.api+json';
         if (!!xUserId) {
@@ -425,7 +491,7 @@ export class BIM360Client extends ForgeClient {
      * @param {string} projectId Project ID.
      * @returns {Promise<IFolder[]>} List of folder records.
      */
-    async listTopFolders(hubId: string, projectId: string, xUserId ?: string): Promise<IFolder[]> {
+    async listTopFolders(hubId: string, projectId: string, xUserId?: string): Promise<IFolder[]> {
         const headers: { [key: string]: string } = {};
         if (!!xUserId) {
             headers['x-user-id'] = xUserId;
@@ -451,7 +517,7 @@ export class BIM360Client extends ForgeClient {
      * @param {string} folderId Folder ID.
      * @returns {Promise<IItem[]>} List of folder contents.
      */
-    async listContents(projectId: string, folderId: string, xUserId ?: string): Promise<IItem[]> {
+    async listContents(projectId: string, folderId: string, xUserId?: string): Promise<IItem[]> {
         const headers: { [key: string]: string } = {};
         if (!!xUserId) {
             headers['x-user-id'] = xUserId;
@@ -477,7 +543,7 @@ export class BIM360Client extends ForgeClient {
      * @param {string} itemId Item ID.
      * @returns {Promise<IItemDetails>} Item details.
      */
-    async getItemDetails(projectId: string, itemId: string, xUserId ?: string): Promise<IItemDetails> {
+    async getItemDetails(projectId: string, itemId: string, xUserId?: string): Promise<IItemDetails> {
         const headers: { [key: string]: string } = {};
         if (!!xUserId) {
             headers['x-user-id'] = xUserId;
@@ -499,7 +565,7 @@ export class BIM360Client extends ForgeClient {
      * @param {string} itemId Item ID.
      * @returns {Promise<IVersion[]>} List of item versions.
      */
-    async listVersions(projectId: string, itemId: string, xUserId ?: string): Promise<IVersion[]> {
+    async listVersions(projectId: string, itemId: string, xUserId?: string): Promise<IVersion[]> {
         const headers: { [key: string]: string } = {};
         headers['Content-Type'] = 'application/vnd.api+json';
         if (!!xUserId) {
@@ -527,7 +593,7 @@ export class BIM360Client extends ForgeClient {
      * @param {string} itemId Item ID.
      * @returns {Promise<IVersion>} Tip version of the item.
      */
-    async getTipVersion(projectId: string, itemId: string, xUserId ?: string): Promise<IVersion> {
+    async getTipVersion(projectId: string, itemId: string, xUserId?: string): Promise<IVersion> {
         const headers: { [key: string]: string } = {};
         if (!!xUserId) {
             headers['x-user-id'] = xUserId;
@@ -549,7 +615,7 @@ export class BIM360Client extends ForgeClient {
      * @param {string} versionId Version ID.
      * @returns {Promise<IVersion>} Specific version of folder item.
      */
-    async getVersionDetails(projectId: string, itemId: string, versionId: string, xUserId ?: string): Promise<IVersion> {
+    async getVersionDetails(projectId: string, itemId: string, versionId: string, xUserId?: string): Promise<IVersion> {
         const headers: { [key: string]: string } = {};
         if (!!xUserId) {
             headers['x-user-id'] = xUserId;
@@ -569,11 +635,12 @@ export class BIM360Client extends ForgeClient {
      * @param {string} projectId Project ID.
      * @returns {Promise<string|null>} Issue container ID if there is one, otherwise null.
      */
-    async getIssueContainerID(hubId: string, projectId: string): Promise<string|null> {
+    async getIssueContainerID(hubId: string, projectId: string): Promise<string | null> {
         const headers = { 'Content-Type': 'application/vnd.api+json' };
         const response = await this.get(`project/v1/hubs/${encodeURIComponent(hubId)}/projects/${encodeURIComponent(projectId)}`, headers, ReadTokenScopes);
         return response.data?.relationships?.issues?.data?.id;
     }
+
 
     /**
      * Lists all issues in a BIM360 project.
@@ -601,8 +668,8 @@ export class BIM360Client extends ForgeClient {
             if (filter.due_date) {
                 url += '&filter[due_date]=' + (
                     Array.isArray(filter.due_date)
-                    ? filter.due_date[0].toISOString() + '...' + filter.due_date[1].toISOString()
-                    : filter.due_date.toISOString()
+                        ? filter.due_date[0].toISOString() + '...' + filter.due_date[1].toISOString()
+                        : filter.due_date.toISOString()
                 );
             }
             if (filter.synced_after) {
@@ -611,8 +678,8 @@ export class BIM360Client extends ForgeClient {
             if (filter.created_at) {
                 url += '&filter[created_at]=' + (
                     Array.isArray(filter.created_at)
-                    ? filter.created_at[0].toISOString() + '...' + filter.created_at[1].toISOString()
-                    : filter.created_at.toISOString()
+                        ? filter.created_at[0].toISOString() + '...' + filter.created_at[1].toISOString()
+                        : filter.created_at.toISOString()
                 );
             }
             if (filter.created_by) {
@@ -920,7 +987,7 @@ export class BIM360Client extends ForgeClient {
      * @param {string} projectId Project ID.
      * @returns {Promise<string|null>} Location container ID if there is one, otherwise null.
      */
-    async getLocationContainerID(hubId: string, projectId: string): Promise<string|null> {
+    async getLocationContainerID(hubId: string, projectId: string): Promise<string | null> {
         const headers = { 'Content-Type': 'application/vnd.api+json' };
         const response = await this.get(`project/v1/hubs/${encodeURIComponent(hubId)}/projects/${encodeURIComponent(projectId)}`, headers, ReadTokenScopes);
         return response.data?.relationships?.locations?.data?.id;
@@ -949,6 +1016,150 @@ export class BIM360Client extends ForgeClient {
             }
         }
         return results;
+    }
+
+
+
+    /**
+     * Retrieves ID of container for rfis of specific BIM360 project.
+     * @async
+     * @param {string} hubId Hub ID.
+     * @param {string} projectId Project ID.
+     * @returns {Promise<string|null>} Rfi container ID if there is one, otherwise null.
+     */
+    async getRfiContainerID(hubId: string, projectId: string): Promise<string | null> {
+        const headers = { 'Content-Type': 'application/vnd.api+json' };
+        const response = await this.get(`project/v1/hubs/${encodeURIComponent(hubId)}/projects/${encodeURIComponent(projectId)}`, headers, ReadTokenScopes);
+        return response.data?.relationships?.rfis?.data?.id;
+    }
+
+    /**
+     * Lists all rfis in a BIM360 project.
+     * Requires 3-legged token.
+     * {@link https://forge.autodesk.com/en/docs/bim360/v1/reference/http/rfis-v2-rfis-GET/}.
+     * @async
+     * @param {string} containerId ID of container storing all rfis for a specific projects.
+     * @param {IRfiFilter} [filter] Optional set of filters.
+     * @param {IPage} [page] Optional page of issues to retrieve. If not defined, *all* rfis will be listed.
+     * @returns {Promise<IRfi[]>} List of matching rfis.
+     */
+    async listRfis(containerId: string, filter?: IRfiFilter, page?: IPage): Promise<IRfi[]> {
+        // TODO: 'include', and 'fields' params
+        const headers = { 'Content-Type': 'application/json' };
+        let url = page
+            ? `bim360/rfis/v2/containers/${encodeURIComponent(containerId)}/rfis?limit=${page.limit}&offset=${page.offset}`
+            : `bim360/rfis/v2/containers/${encodeURIComponent(containerId)}/rfis?limit=${PageSize}`;
+
+        if (filter) {
+            if (filter.status) {
+                url += '&filter[status]=' + filter.status;
+            }
+            if (filter.linkedDocument) {
+                url += '&filter[linkedDocument]=' + filter.linkedDocument;
+            }
+            if (filter.dueDate) {
+                url += '&filter[dueDate]=' + (
+                    Array.isArray(filter.dueDate)
+                        ? filter.dueDate[0].toISOString() + '...' + filter.dueDate[1].toISOString()
+                        : filter.dueDate.toISOString()
+                );
+            }
+            if (filter.assignedTo) {
+                url += '&filter[assignedTo]=' + filter.assignedTo;
+            }
+        }
+        console.log('rfi:' + url);
+        let response = await this.get(url, headers, ReadTokenScopes);
+        let results = response.results;
+        // if (!page) {
+        //     while (response.links && response.links.next) {
+        //         response = await this.get(response.links.next.href, headers, ReadTokenScopes);
+        //         results = results.concat(response.data);
+        //     }
+        // }
+        //console.log(results);
+
+        return results.map((result: any) => Object.assign(result, { id: result.id }));
+    }
+
+    /**
+     * Obtains detail information about BIM360 rfi.
+     * Requires 3-legged token.
+     * {@link https://forge.autodesk.com/en/docs/bim360/v1/reference/http/rfis-v2-rfis-id-GET/}.
+     * @async
+     * @param {string} containerId ID of container storing all rfis for a specific projects.
+     * @param {string} rfiId RFI ID.
+     * @returns {Promise<IRfi>} Rfi details.
+    */
+    async getRfiDetails(containerId: string, rifId: string): Promise<IRfi> {
+        // TODO: support 'include', and 'fields' params
+        const headers = { 'Content-Type': 'application/json' };
+        const response = await this.get(`bim360/rfis/v2/containers/${encodeURIComponent(containerId)}/rfis/${encodeURIComponent(rifId)}`, headers, ReadTokenScopes);
+        return response;
+    }
+
+
+    /**
+     * Obtains comments of  BIM360 rfi.
+     * Requires 3-legged token.
+     * {@link https://forge.autodesk.com/en/docs/bim360/v1/reference/http/rfis-v2-comments-GET/}.
+     * @async
+     * @param {string} containerId ID of container storing all rfis for a specific projects.
+     * @param {string} rfiId RFI ID.
+     * @returns {Promise<IRfi>} Rfi details.
+    */
+    async getRfiComments(containerId: string, rifId: string): Promise<IRfi> {
+        const headers = { 'Content-Type': 'application/json' };
+        const response = await this.get(`bim360/rfis/v2/containers/${encodeURIComponent(containerId)}/rfis/${encodeURIComponent(rifId)}/comments`, headers, ReadTokenScopes);
+        return response.results;
+    }
+
+    /**
+     * Obtains attachments of  BIM360 rfi.
+     * Requires 3-legged token.
+     * {@link https://forge.autodesk.com/en/docs/bim360/v1/reference/http/rfis-v2-attachments-GET/}.
+     * @async
+     * @param {string} containerId ID of container storing all rfis for a specific projects.
+     * @param {string} rfiId RFI ID.
+     * @returns {Promise<IRfi>} Rfi details.
+    */
+    async getRfiAttachments(containerId: string, rifId: string): Promise<IRfi> {
+        const headers = { 'Content-Type': 'application/json' };
+        const response = await this.get(`bim360/rfis/v2/containers/${encodeURIComponent(containerId)}/rfis/${encodeURIComponent(rifId)}/attachments`, headers, ReadTokenScopes);
+        return response.results;
+    }
+
+
+    
+/**
+     * Lists all users in BIM 360 project, or just users matching specific criteria. 3LO is supported
+     * {@link https://forge.autodesk.com/en/docs/bim360/v1/reference/http/admin-v1-projects-projectId-users-GET/}.
+     * @async
+     * @param {string} projectId The account ID of the users. This corresponds to project ID in the Data Management API. To convert a project ID into an prject ID you need to remove the “b.” prefix. For example, a project ID of b.c8b0c73d-3ae9 translates to an project ID of c8b0c73d-3ae9.
+     * @returns {Promise<IUser[]>} List of users.
+     */
+    async listProjectUsers(projectId: string, filter?: IUserFilter): Promise<IProjectUser[]> {
+        let url = `bim360/admin/v1/projects/${encodeURIComponent(projectId)}/users`
+        if (filter) {
+            url += `?limit=${PageSize}`;
+            for (const key of Object.keys(filter)) {
+                url += `&${key}=${(filter as any)[key]}`;
+            }
+        } else {
+            url += `?limit=${PageSize}`;
+        }
+        let results: IProjectUser[] = [];
+        let offset = 0;
+        let response = await this.get(url, {}, ReadTokenScopes);
+        while (response.results.length) {
+            console.log(response.results.length);
+            results = results.concat(response.results);
+            offset += PageSize;
+            response = await this.get(url + `&offset=${offset}`, {}, ReadTokenScopes);
+        }
+        return results.map((result: any) => Object.assign(result, { email: result.email }));
+
+         //return results;
     }
 
     // #endregion
